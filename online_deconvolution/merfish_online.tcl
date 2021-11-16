@@ -17,7 +17,7 @@ proc decon_segment {tcl_files destDir fileList} {
 set oldVerbosity [huOpt verb -mode silent]
 
 # source Tcl functions
-#set tcl_files "/home/marcnol/Repositories/huygensDeconvolutionScripts/"
+# set tcl_files "/home/marcnol/Repositories/huygensDeconvolutionScripts/"
 source "${tcl_files}merfish_parameters.tcl"
 source "${tcl_files}convert_to_Tiff.tcl"
 source "${tcl_files}log_file.tcl"
