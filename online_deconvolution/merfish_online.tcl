@@ -315,7 +315,7 @@ huOpt report ">time taken $TIME_human"
 huOpt verb -mode $oldVerbosity
 
 huOpt report "done."
-
+exit
 }
 
 
