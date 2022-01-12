@@ -32,9 +32,12 @@ t1 = time()
 print(f'Loading images time : {t1-t0}s')
 
 # Define the parameters
-downsize_factor = 8  # Need to be a power of 2
-gaussian_filter_size = 10 / np.log2(downsize_factor)
-resize_shape = (int(im_shape[1] / downsize_factor), int(im_shape[2] / downsize_factor))
+downsize_power = 3
+if downsize_power > 0:
+    gaussian_filter_size = 10 / (2*downsize_power)
+else:
+    gaussian_filter_size = 10
+resize_shape = (int(im_shape[1] / 2**downsize_power), int(im_shape[2] / 2**downsize_power))
 roi_size = int(resize_shape[0]/2)
 angles_range = (-90, 90)
 crude_search_angle = 9
@@ -150,7 +153,7 @@ print(f'Optimization time : {t3-t2}s')
 
 # Calculate the final image and the total calculation time :
 DAPI_1_rotate = rotate(DAPI_1_mip, theta, axes=(1, 0), reshape=False, order=3, mode='constant', cval=0.0)
-DAPI_1_rotate_shift = shift(DAPI_1_rotate, [-dx * downsize_factor, -dy * downsize_factor], order=0, mode='constant')
+DAPI_1_rotate_shift = shift(DAPI_1_rotate, [-dx * 2**downsize_power, -dy * 2**downsize_power], order=0, mode='constant')
 
 t4 = time()
 print(f'Registration of the original image : {t4-t3}s')
@@ -171,7 +174,9 @@ plt.imshow(DAPI_2_mip, cmap='gray')
 plt.imshow(DAPI_1_rotate_shift, cmap='twilight', alpha=0.5)
 plt.title('Aligned images (DAPI_2 as reference)')
 plt.axis('off')
-plt.show()
+
+im_name = os.path.join(current_path, 'MIP_aligned.png')
+plt.savefig(im_name)
 
 # Plot the final images using the standardized images:
 DAPI_1_rotate = rotate(DAPI_1_processed, theta, axes=(1, 0), reshape=False, order=3, mode='constant', cval=0.0)
@@ -191,4 +196,15 @@ plt.imshow(DAPI_2_processed, cmap='gray')
 plt.imshow(DAPI_1_rotate_shift, cmap='twilight', alpha=0.5)
 plt.title('Aligned images (DAPI_2 as reference - DAPI_1 in blue)')
 plt.axis('off')
-plt.show()
+
+im_name = os.path.join(current_path, 'MIP_corrected_aligned.png')
+plt.savefig(im_name)
+
+# Save the aligned montage :
+im_name = os.path.join(current_path, 'Aligned_images.png')
+plt.figure(figsize=(16, 10))
+plt.imshow(DAPI_2_processed, cmap='gray')
+plt.imshow(DAPI_1_rotate_shift, cmap='twilight', alpha=0.5)
+plt.title('Aligned images (DAPI_2 as reference - DAPI_1 in blue)')
+plt.axis('off')
+plt.savefig(im_name)
