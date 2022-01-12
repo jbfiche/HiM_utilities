@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+/image_alignment/.idea/image_alignment.iml
+/image_alignment/.idea/inspectionProfiles/Project_Default.xml
+/image_alignment/.idea/inspectionProfiles/profiles_settings.xml
+/image_alignment/.idea/misc.xml
+/image_alignment/.idea/modules.xml
+/image_alignment/.idea/vcs.xml
