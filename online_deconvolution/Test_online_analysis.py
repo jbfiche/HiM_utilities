@@ -19,8 +19,8 @@ import time
 # from tifffile import imread, TiffWriter
 
 Huygens_folder = "/home/fiche/huygensDeconvolutionScripts/"
-data_folder = "/mnt/grey/DATA/2021_09_17/001_HiM_Tissues_Olivier_HiM/"
-dest_folder = "/mnt/grey/DATA/2021_09_17/Deconvolved/"
+data_folder = "/mnt/grey/DATA/users/JB/TP_qBio/day-1/test_deconvolution/"
+dest_folder = "/mnt/grey/DATA/users/JB/TP_qBio/day-1/Deconvolved/"
 
 list_analyzed = []
 last_deconvolution_time = time.time()
@@ -105,8 +105,10 @@ while time.time() - last_deconvolution_time < 10800:
 
         start = time.time()
         # os.system('nohup hucore -task /home/fiche/huygensDeconvolutionScripts/batchDeconvolve_online.tcl > out.log')
-        command = 'hucore -task' + path_batchDeconvolve
-        os.system(command)
+        os.system('hucore -task /home/fiche/huygensDeconvolutionScripts/batchDeconvolve_online.tcl')
+        command = 'hucore -task ' + path_batchDeconvolve
+        print(f'command : {command}')
+        #os.system(command)
         end = time.time()
         print((end - start) / 60)
 
