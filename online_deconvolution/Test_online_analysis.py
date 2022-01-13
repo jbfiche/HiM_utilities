@@ -108,7 +108,7 @@ while time.time() - last_deconvolution_time < 10800:
         os.system('hucore -task /home/fiche/huygensDeconvolutionScripts/batchDeconvolve_online.tcl')
         command = 'hucore -task ' + path_batchDeconvolve
         print(f'command : {command}')
-        #os.system(command)
+
         end = time.time()
         print((end - start) / 60)
 

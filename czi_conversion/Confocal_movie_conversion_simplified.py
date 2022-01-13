@@ -4,8 +4,8 @@
 Created on Mon Dec 14 16:23:45 2020
 
 The following program is used to analyze the data from the Airyscan microscope,
-rename the movies and convert them to tif files. The folder architecture is the same than the one used on the RAMM.
-In order to work, use the conda environment "Confocal"
+rename the movies and convert them to tif files. In order to work, use the 
+conda environment "Confocal"
 
 @author: jb
 """
@@ -22,10 +22,10 @@ import tifffile
 # template txt file can be found
 # -------------------------------
 
-path_acquisition_data = ["/mnt/grey/DATA/rawData_2021/Experiment_64_Jb_Christophe_Pia/2021-11-25/DAPI-2.czi/DAPI-2_AcquisitionBlock2.czi",
-                         "/mnt/grey/DATA/rawData_2021/Experiment_64_Jb_Christophe_Pia/2021-11-25/DAPI-2.czi/DAPI-2_AcquisitionBlock3.czi"]
-path_name_file = "/mnt/grey/DATA/rawData_2021/Experiment_64_Jb_Christophe_Pia/DAPI/movie_name.txt"
-saving_path = "/mnt/grey/DATA/rawData_2021/Experiment_64_Jb_Christophe_Pia/DAPI_fiducial"
+path_acquisition_data = ["/mnt/grey/DATA/rawData_2021/Experiment_64_Jb_Christophe_Pia/Frozen cells_2021-11-26/RT1/RT_control-1_AcquisitionBlock2.czi",
+                         "/mnt/grey/DATA/rawData_2021/Experiment_64_Jb_Christophe_Pia/Frozen cells_2021-11-26/RT1/RT_control-1_AcquisitionBlock3.czi"]
+path_name_file = "/mnt/grey/DATA/rawData_2021/Experiment_64_Jb_Christophe_Pia/Frozen cells_2021-11-26/rt1_movie_name.txt"
+saving_path = "/mnt/grey/DATA/rawData_2021/Experiment_64_Jb_Christophe_Pia/Frozen cells_2021-11-26/RT1_"
 
 
 # List the content of all the acquisition folders and save it in the list
@@ -40,7 +40,7 @@ Data_number = []
 
 for path in path_acquisition_data:
     for file in os.listdir(path):
-        Data_file.append(os.path.join(path,file))
+        Data_file.append(os.path.join(path, file))
         n = re.findall(r'_pt\d+', file)
         Data_number.append(n[0][3:])
 
@@ -63,9 +63,8 @@ with open(path_name_file) as f:
     Data_name = [x.strip() for x in Data_name]
     
 if len(Data_name) != len(Sorted_path):
-    print("There is an error in the selected folders. The number of acquisition movies does not match the number of file name in the txt file")
-    
-        
+    print(
+        "There is an error in the selected folders. The number of acquisition movies does not match the number of file name in the txt file")
 
 # Open the czi movies and save it as tiff
 
@@ -83,33 +82,23 @@ for nmovie in range(len(Sorted_path)):
     prefix = movie_name[0:delimiter_pos[0]]
     embryo = movie_name[delimiter_pos[0]+1:delimiter_pos[1]]
     roi = movie_name[delimiter_pos[1]+1:]
-    
-    os.chdir(saving_path)
-    if os.path.isdir(embryo) == False:
-        os.mkdir(embryo)
-    os.chdir(os.path.join(saving_path,embryo))
-    if os.path.isdir(roi) == False:
-        os.mkdir(roi)
-    os.chdir(os.path.join(saving_path,embryo,roi))
-    if os.path.isdir(prefix) == False:
-        os.mkdir(prefix)
-    os.chdir(os.path.join(saving_path,embryo,roi,prefix))
-    
-    
+
+    print(f'movie_name : {movie_name}, prefix : {prefix}, embryo : {embryo}, roi : {roi}')
+
     movie = czifile.imread(Sorted_path[nmovie])
     n_channel = movie.shape[1]
     n_z = movie.shape[2]
     
-    tiff_name = 'Scan_000_' + prefix + '_' + roi[3:6] + '_ROI.tif'
-    with tifffile.TiffWriter(tiff_name) as tf:
+    tiff_name = 'Scan_' + embryo + '_' + roi + '.tif'
+    tiff_path = os.path.join(saving_path, tiff_name)
+    with tifffile.TiffWriter(tiff_path) as tf:
     
         for z in range(n_z):
             for c in range (n_channel):
         
-                im = movie[0,c,z,:,:,0]
+                im = movie[0, c, z, :, :, 0]
                 im = np.array(im)
                 tf.save(im.astype(np.uint16))
             
     message = movie_name + " was saved"
     print(message)
-    
