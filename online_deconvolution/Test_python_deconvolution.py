@@ -26,7 +26,7 @@ for n, path in enumerate(path_files):
     file_name = os.path.basename(path)
     new_file_name = os.path.splitext(file_name)[0] + "_decon.tif"
     saving_path = os.path.join(dest_folder, new_file_name)
-    result_img.save(saving_path, type="tiff16")
+    result_img.save(saving_path, type="singletiff")
 
 huOpt.report("Done!")
 exit()
