@@ -23,5 +23,10 @@ for n, path in enumerate(path_files):
     raw = image(path=path)
     result_img = raw.cmle(psf, it=5, bgMode="wf", bgRadius=0.7, blMode="off")
 
+    file_name = os.path.basename(path)
+    new_file_name = os.path.splitext(file_name)[0] + "_decon.tif"
+    saving_path = os.path.join(dest_folder, new_file_name)
+    result_img.save(saving_path, type="tif")
+
 huOpt.report("Done!")
 exit()
