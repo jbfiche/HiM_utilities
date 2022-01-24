@@ -11,11 +11,11 @@ n_channel = 2
 
 # look for all the tif files
 path_files = glob(data_folder + '/**/*.tif', recursive=True)
-print(f'Number of tif files found : {len(path_files)} \n')
+# print(f'Number of tif files found : {len(path_files)} \n')
 
 # for each tif file, open an image class
 for n, path in enumerate(path_files):
-    print(f'Loading image #{n} with the following path : {path} \n')
+    # print(f'Loading image #{n} with the following path : {path} \n')
     raw = image(path=path)
 
 print("DONE!")
