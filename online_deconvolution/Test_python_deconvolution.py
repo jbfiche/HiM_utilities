@@ -11,7 +11,7 @@ huOpt.verb(mode="silent")
 
 # look for all the tif files
 path_files = glob(data_folder + '/**/*.tif', recursive=True)
-# print(f'Number of tif files found : {len(path_files)} \n')
+print(f'Number of tif files found : {len(path_files)} \n')
 huOpt.report("Number of tif files found : ${len(path_files)}")
 
 # create an empty image, so the deconvolution is done using a theoretical psf based on Microscopic Parameters
