@@ -21,7 +21,7 @@ psf = image()
 for n, path in enumerate(path_files):
     # print(f'Loading image #{n} with the following path : {path} \n')
     raw = image(path=path)
-    result_img = raw.cmle(psf, it=5, bgMode="wf", bgRadius=0.7, blMode=off)
+    result_img = raw.cmle(psf, it=5, bgMode="wf", bgRadius=0.7, blMode="off")
 
 huOpt.report("Done!")
 exit()
