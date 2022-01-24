@@ -6,9 +6,8 @@ dest_folder = "/mnt/grey/DATA/users/JB/test_HiM/test_data_Marion/Deconvolved"
 
 n_channel = 2
 
-
 # to avoid pop up warning
-huOpt.verb(mode="silent")
+# huOpt.verb(mode="silent")
 
 # look for all the tif files
 path_files = glob(data_folder + '/**/*.tif', recursive=True)
