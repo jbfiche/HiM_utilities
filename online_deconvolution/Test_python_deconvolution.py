@@ -1,7 +1,7 @@
 import os
 from glob import glob
 
-data_folder = "/mnt/grey/DATA/users/JB/test_HiM/test_data_Marion"
+data_folder = "/mnt/grey/DATA/users/JB/test_HiM/test_data_Marion/Test"
 dest_folder = "/mnt/grey/DATA/users/JB/test_HiM/test_data_Marion/Deconvolved"
 
 n_channel = 2
@@ -12,6 +12,7 @@ huOpt.verb(mode="silent")
 # look for all the tif files
 path_files = glob(data_folder + '/**/*.tif', recursive=True)
 # print(f'Number of tif files found : {len(path_files)} \n')
+huOpt.report("Number of tif files found : {len(path_files)}")
 
 # create an empty image, so the deconvolution is done using a theoretical psf based on Microscopic Parameters
 psf = image()
