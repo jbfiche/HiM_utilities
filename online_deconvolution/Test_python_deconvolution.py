@@ -9,7 +9,7 @@ dest_folder = "/mnt/grey/DATA/users/JB/test_HiM/test_data_Marion/Deconvolved"
 huOpt.verb(mode = "silent")
 
 # look for all the tif files
-files = glob(data_folder + '/**/**/*.tif', recursive=True)
+files = glob(data_folder + '/**/*.tif', recursive=True)
 print(files)
 
 # raw = image(path=)
