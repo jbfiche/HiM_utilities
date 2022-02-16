@@ -234,15 +234,9 @@ class ImageAlignment:
 
     def rescale_contrast(self, im):
 
+        im = np.divide(im, gaussian_filter(im, 10))
         im = (2 ** 16 - 1) * (im - np.min(im)) / (np.max(im) - np.min(im))
-
-        intensity = np.reshape(im, (im.shape[0]*im.shape[1],1))
-        intensity.sort(axis=0)
-        min_int = np.mean(intensity[0:int(intensity.shape[0]/100)])
-        max_int = np.mean(intensity[int(99*intensity.shape[0]/100) : -1])
-
-        im[im < min_int] = 0
-        im[im > max_int] = 2**16
+        return im
 
     def save_aligned_montage(self, im_ref, im_2_align, im_aligned, im_name="MIP"):
         """ Save the results.
@@ -259,8 +253,11 @@ class ImageAlignment:
         # im_ref = rescale_intensity(im_ref, (0, yen_threshold), (0, 2**16))
 
         # im_ref = (2 ** 8 - 1) * (im_ref - np.min(im_ref)) / (np.max(im_ref) - np.min(im_ref))
-        im_2_align = (2 ** 8 - 1) * (im_2_align - np.min(im_2_align)) / (np.max(im_2_align) - np.min(im_2_align))
-        im_aligned = (2 ** 8 - 1) * (im_aligned - np.min(im_aligned)) / (np.max(im_aligned) - np.min(im_aligned))
+        im_ref = self.rescale_contrast(im_ref)
+        im_2_align = self.rescale_contrast(im_2_align)
+        im_aligned = self.rescale_contrast(im_aligned)
+        # im_2_align = (2 ** 8 - 1) * (im_2_align - np.min(im_2_align)) / (np.max(im_2_align) - np.min(im_2_align))
+        # im_aligned = (2 ** 8 - 1) * (im_aligned - np.min(im_aligned)) / (np.max(im_aligned) - np.min(im_aligned))
 
         # Save the images as a subplot
         plt.subplot(131)
@@ -310,22 +307,20 @@ if __name__ == "__main__":
     # Load the images and define the main parameters
     im_reference, im_to_align = _align.load_images(path_image_1, path_image_2, dest_folder)
 
-    _align.rescale_contrast(im_reference)
+    # Process the two images
+    im_reference_processed = _align.process_image(im_reference, im_name="im_ref")
+    im_to_align_processed = _align.process_image(im_to_align, im_name="im_to_align")
 
-    # # Process the two images
-    # im_reference_processed = _align.process_image(im_reference, im_name="im_ref")
-    # im_to_align_processed = _align.process_image(im_to_align, im_name="im_to_align")
-    #
-    # # Perform a first crude search for the alignment
-    # _align.alignment(im_reference_processed, im_to_align_processed, crude_search=True)
-    #
-    # # Based on the previous calculation, perform a second alignment with constrained angle values
-    # _align.alignment(im_reference_processed, im_to_align_processed, crude_search=False)
-    #
-    # # Calculate the final image using the MIP
-    # aligned_image = _align.recalculate_image(im_to_align, processed=False)
-    # _align.save_aligned_montage(im_reference, im_to_align, aligned_image, im_name="MIP")
-    #
-    # # Calculate the final image using the processed images
-    # aligned_image = _align.recalculate_image(im_to_align_processed, processed=True)
-    # _align.save_aligned_montage(im_reference_processed, im_to_align_processed, aligned_image, im_name="PROCESSED")
+    # Perform a first crude search for the alignment
+    _align.alignment(im_reference_processed, im_to_align_processed, crude_search=True)
+
+    # Based on the previous calculation, perform a second alignment with constrained angle values
+    _align.alignment(im_reference_processed, im_to_align_processed, crude_search=False)
+
+    # Calculate the final image using the MIP
+    aligned_image = _align.recalculate_image(im_to_align, processed=False)
+    _align.save_aligned_montage(im_reference, im_to_align, aligned_image, im_name="MIP")
+
+    # Calculate the final image using the processed images
+    aligned_image = _align.recalculate_image(im_to_align_processed, processed=True)
+    _align.save_aligned_montage(im_reference_processed, im_to_align_processed, aligned_image, im_name="PROCESSED")
