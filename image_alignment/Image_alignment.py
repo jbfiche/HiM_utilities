@@ -16,6 +16,8 @@ import numpy as np
 import os
 import matplotlib
 import matplotlib.pyplot as plt
+from skimage.filters import threshold_yen, threshold_multiotsu
+from skimage.exposure import rescale_intensity
 
 matplotlib.use('TkAgg')
 
@@ -30,7 +32,6 @@ class ImageAlignment:
         self.crude_search_angle = crude_search_angle
         self.verbose = verbose
         self.saving = saving
-        self.im_shape = None
         self.resize_shape = None
         self.saving_path = ""
 
@@ -43,31 +44,35 @@ class ImageAlignment:
         :return: im1, im2 the two loaded images.
         """
         im1 = imread(path_1)
+        mip_1 = np.max(im1, axis=0)
+        mip_1 = mip_1.astype(np.float_)
+
         im2 = imread(path_2)
-        self.im_shape = im1.shape
+        mip_2 = np.max(im2, axis=0)
+        mip_2 = mip_2.astype(np.float_)
+
         self.saving_path = saving_path
 
-        return im1, im2
+        return mip_1, mip_2
 
     def process_image(self, im, im_name=None):
-        """ Calculate the standardized image applying binning. The binning is applied after calculating the MIP in order to
-    optimize the calculation time. The image renormalization using the gaussian filter is actually quite long when working
-    on full size images
+        """ Calculate the standardized image applying binning. The binning is applied after calculating the MIP in order
+         to optimize the calculation time. The image renormalization using the gaussian filter is actually quite long
+         when working on full size images
 
         :param im_name: name of the file in case the saving option is selected
         :param im: input image stack
         :return: mip : maximum intensity projection of the original stack im
                  im_standardized : return the standardized mip after binning
         """
-        # Calculate the mip
-        mip = np.max(im, axis=0)
-        mip = mip.astype(np.float_)
 
         # Bin the image according to the downsizing power indicated as parameter
-        self.resize_shape = (int(self.im_shape[1] / 2 ** self.downsizing_power), int(self.im_shape[2] / 2 ** self.downsizing_power))
-        shape = (self.resize_shape[0], mip.shape[0] // self.resize_shape[0],
-                 self.resize_shape[1], mip.shape[1] // self.resize_shape[1])
-        mip_bin = mip.reshape(shape).mean(-1).mean(1)
+        self.resize_shape = (
+                        int(im.shape[0] / 2 ** self.downsizing_power), int(im.shape[1] / 2 ** self.downsizing_power))
+
+        shape = (self.resize_shape[0], im.shape[0] // self.resize_shape[0],
+                 self.resize_shape[1], im.shape[1] // self.resize_shape[1])
+        mip_bin = im.reshape(shape).mean(-1).mean(1)
 
         # Correct for illumination inhomogeneity using a gaussian filter
         if self.downsizing_power > 0:
@@ -80,14 +85,14 @@ class ImageAlignment:
         # Save the images if the option was selected
         if self.saving and im_name:
             mip_name = im_name + '_MIP.tif'
-            self.im_save(mip, mip_name)
+            self.im_save(im, mip_name)
 
             processed_name = im_name + '_PROCESSED.tif'
             self.im_save(im_processed, processed_name)
 
         return im_standardized
 
-    def alignment(self, im_ref, im, crude_search=True, starting_angle=None):
+    def alignment(self, im_ref, im, crude_search=True):
         """ Perform a search procedure to align an input image im with respect to im_ref. The aim is to find the
         rotation angle leading to the highest correlation score for the two images. The procedure can work two ways :
         either in a crude mode, where a crude search is performed according to the specified parameters. Or a fine
@@ -97,28 +102,31 @@ class ImageAlignment:
         :param im: image to be aligned
         :param crude_search: if True, a crude search is run
         :param starting_angle: if indicated, the fine search will be performed around this values
-        :return: the optimum angle value (returning the highest correlation value)
+        :return: the optimum angle value (returning the highest correlation value) as well as the optimum shift values
         """
         # Select the central roi of the image that needs to be realigned
-        roi = self.select_roi(im)
+        roi, x0, y0 = self.select_roi(im)
         roi_shape = roi.shape[0]
 
         # Define the list of angle values to test
         if crude_search:
             n_angles = (self.angles_range[1] - self.angles_range[0]) // self.crude_search_angle
-            angles = np.linspace(self.angles_range[0], self.angles_range[1], num=n_angles, endpoint=False, retstep=False,
+            angles = np.linspace(self.angles_range[0], self.angles_range[1], num=n_angles, endpoint=False,
+                                 retstep=False,
                                  dtype=None, axis=0)
-        elif crude_search is False and not starting_angle:
+        elif crude_search is False and not self.optimum_angle:
             n_angles = self.angles_range[1] - self.angles_range[0] + 1
-            angles = np.linspace(self.angles_range[0], self.angles_range[1], num=n_angles, endpoint=False, retstep=False,
+            angles = np.linspace(self.angles_range[0], self.angles_range[1], num=n_angles, endpoint=False,
+                                 retstep=False,
                                  dtype=None, axis=0)
         else:
-            angles = np.arange(starting_angle - (self.crude_search_angle - 1),
-                               starting_angle + (self.crude_search_angle - 1), 1)
+            angles = np.arange(self.optimum_angle - (self.crude_search_angle - 1),
+                               self.optimum_angle + (self.crude_search_angle - 1), 1)
             n_angles = len(angles)
 
         correlation_max = np.zeros((n_angles,))
         correlation_im = np.zeros((n_angles, im_ref.shape[0], im_ref.shape[1]))
+        max_correlation_2d_pos = np.zeros((n_angles, 2))
 
         # For each angle, rotate the roi and calculate the correlated image with the reference
         for n, angle in enumerate(angles):
@@ -126,13 +134,17 @@ class ImageAlignment:
             corr = correlate(im_ref, roi_rotated, mode='same')
             correlation_max[n] = np.max(corr)
             correlation_im[n] = corr
+            max_correlation_2d_pos[n, :] = np.unravel_index(np.argmax(corr, axis=None), corr.shape)
 
         # Plot the correlated images if the verbose option was selected
         if self.verbose:
             self.plot_correlation(correlation_im, angles)
 
-        # Return the angle with the best correlation score
-        return angles[np.argmax(correlation_max)]
+        # Return the angle with the best correlation score as well as the shift dx, dy values
+        max_correlation_idx = np.argmax(correlation_max)
+        self.optimum_angle = angles[max_correlation_idx]
+        self.dx = (x0 - max_correlation_2d_pos[max_correlation_idx, 0]) * 2 ** self.downsizing_power
+        self.dy = (y0 - max_correlation_2d_pos[max_correlation_idx, 1]) * 2 ** self.downsizing_power
 
     def select_roi(self, im):
         """ Select the central roi of the input image.
@@ -146,7 +158,7 @@ class ImageAlignment:
         roi = im[x0 - d // 2:x0 + d // 2, y0 - d // 2:y0 + d // 2]
         roi = (roi - np.mean(roi)) / np.std(roi)
 
-        return roi
+        return roi, x0, y0
 
     @staticmethod
     def im_rotate(im, im_size, angle_value):
@@ -168,6 +180,23 @@ class ImageAlignment:
         im_rotated = im_rotated[d_shift:im_size - d_shift, d_shift:im_size - d_shift]
 
         return im_rotated
+
+    def recalculate_image(self, im, processed=False):
+        """ Apply the alignment transformation to the input 2D image.
+
+        :param processed: indicate whether the input image has been processed (since it will change the dimensions of
+        the image according to the downsizing parameter)
+        :param im: 2D image (np array)
+        :return: im_rotated_shifted, the modified image.
+        """
+        im_rotated = rotate(im, self.optimum_angle, axes=(1, 0), reshape=False, order=3, mode='constant', cval=0.0)
+        if processed:
+            im_rotated_shifted = shift(im_rotated,
+                                       [-self.dx // 2 ** self.downsizing_power, -self.dy // 2 ** self.downsizing_power],
+                                       order=0, mode='constant')
+        else:
+            im_rotated_shifted = shift(im_rotated, [-self.dx, -self.dy], order=0, mode='constant')
+        return im_rotated_shifted
 
     def im_save(self, im, name):
         """ Save input image as a tiff file.
@@ -203,134 +232,76 @@ class ImageAlignment:
 
         plt.show()
 
+    def rescale_contrast(self, im):
 
-# # Select the central ROI from DAPI_1 :
-# d = roi_size
-# x0 = int(resize_shape[0] / 2 - 1)
-# y0 = int(resize_shape[0] / 2 - 1)
-# roi = DAPI_1_processed[x0 - d // 2:x0 + d // 2, y0 - d // 2:y0 + d // 2]
-# roi = (roi - np.mean(roi)) / np.std(roi)
-# DAPI_1_standardize = (DAPI_1_processed - np.mean(DAPI_1_processed)) / np.std(DAPI_1_processed)
-# DAPI_2_standardize = (DAPI_2_processed - np.mean(DAPI_2_processed)) / np.std(DAPI_2_processed)
+        im = (2 ** 16 - 1) * (im - np.min(im)) / (np.max(im) - np.min(im))
 
+        intensity = np.reshape(im, (im.shape[0]*im.shape[1],1))
+        intensity.sort(axis=0)
+        min_int = np.mean(intensity[0:int(intensity.shape[0]/100)])
+        max_int = np.mean(intensity[int(99*intensity.shape[0]/100) : -1])
 
-# # Calculate the correlation of the roi with DAPI_2, after applying a rotation defined by the angle theta. Crude search
-# # with a precision of 10° :
-# def im_correlate(im1, im2, angle_value, im_size):
-#     # apply rotation by Theta while keeping the same shape of the image
-#     im1_rotate = rotate(im1, angle_value, axes=(1, 0), reshape=False, order=3, mode='constant', prefilter=True)
-#     # select the central part of the image, the one that will never be modified by padding whatever the value of theta
-#     d_shift = np.ceil((im_size - im_size / np.sqrt(2)) / 2)
-#     d_shift = d_shift.astype('int')
-#     im1_rotate = im1_rotate[d_shift:im_size - d_shift, d_shift:im_size - d_shift]
-#     # calculate the correlation between the two images
-#     corr = correlate(im2, im1_rotate, mode='same')
-#     return corr
+        im[im < min_int] = 0
+        im[im > max_int] = 2**16
 
+    def save_aligned_montage(self, im_ref, im_2_align, im_aligned, im_name="MIP"):
+        """ Save the results.
 
+        :param im_ref: reference 2D image
+        :param im_2_align: image to aligne
+        :param im_aligned: aligned image
+        :param im_name: name of the image to save
+        """
+        plt.figure(figsize=(16, 10))
 
-# n_angles = (angles_range[1] - angles_range[0]) // crude_search_angle
-# angles = np.linspace(angles_range[0], angles_range[1], num=n_angles, endpoint=False, retstep=False, dtype=None, axis=0)
-# correlation_max = np.zeros((360 // crude_search_angle,))
-# if verbose:
-#     plt.figure(figsize=(16, 10))
-#
-# for n, angle in enumerate(angles):
-#     correlation_image = im_correlate(roi, DAPI_2_standardize, angle, d)
-#     correlation_max[n] = np.max(correlation_image)
-#     # In case the option is selected, display all the images in one single figure
-#     if verbose:
-#         im_plot(correlation_image, n, angle)
-#
-# if verbose:
-#     plt.show()
+        # Scale the image contrast
+        # yen_threshold = threshold_yen(im_ref)
+        # im_ref = rescale_intensity(im_ref, (0, yen_threshold), (0, 2**16))
 
-# # From the maximum correlation found in the first crude search, perform a finer search with a precision of 1°. Infer the
-# # best angle for the image rotation and calculate the shift for the translation :
-# theta_start = angles[np.argmax(correlation_max)] - (crude_search_angle - 1)
-# theta_stop = angles[np.argmax(correlation_max)] + (crude_search_angle - 1)
-# angles = np.arange(theta_start, theta_stop, 1)
-# correlation_max = np.zeros((len(angles),))
-# index_max = np.zeros((len(angles), 2))
-#
-# for n, angle in enumerate(angles):
-#     correlation_image = im_correlate(roi, DAPI_2_standardize, angle, d)
-#     correlation_max[n] = np.max(correlation_image)
-#     index_max[n, :] = np.unravel_index(np.argmax(correlation_image, axis=None), correlation_image.shape)
-#
-# theta = angles[np.argmax(correlation_max)]
-# dx = x0 - index_max[np.argmax(correlation_max), 0]
-# dy = y0 - index_max[np.argmax(correlation_max), 1]
-#
-# t3 = time()
-# print(f'Optimization time : {t3 - t2}s')
-#
-# # Calculate the final image and the total calculation time :
-# DAPI_1_rotate = rotate(DAPI_1_mip, theta, axes=(1, 0), reshape=False, order=3, mode='constant', cval=0.0)
-# DAPI_1_rotate_shift = shift(DAPI_1_rotate, [-dx * 2 ** downsize_power, -dy * 2 ** downsize_power], order=0,
-#                             mode='constant')
-#
-# t4 = time()
-# print(f'Registration of the original image : {t4 - t3}s')
-# print(f'Total calculation time : {t4 - t0}s')
-#
-# # Plot the final images using the MIP:
-# plt.figure(figsize=(16, 10))
-# plt.subplot(131)
-# plt.imshow(DAPI_1_mip, cmap='gray')
-# plt.title('DAPI_1')
-# plt.axis('off')
-# plt.subplot(132)
-# plt.imshow(DAPI_2_mip, cmap='gray')
-# plt.title('DAPI_2')
-# plt.axis('off')
-# plt.subplot(133)
-# plt.imshow(DAPI_2_mip, cmap='gray')
-# plt.imshow(DAPI_1_rotate_shift, cmap='twilight', alpha=0.5)
-# plt.title('Aligned images (DAPI_2 as reference)')
-# plt.axis('off')
-#
-# im_name = os.path.join(current_path, 'MIP_aligned.png')
-# plt.savefig(im_name)
-#
-# # Plot the final images using the standardized images:
-# DAPI_1_rotate = rotate(DAPI_1_processed, theta, axes=(1, 0), reshape=False, order=3, mode='constant', cval=0.0)
-# DAPI_1_rotate_shift = shift(DAPI_1_rotate, [-dx, -dy], order=3, mode='constant')
-#
-# plt.figure(figsize=(16, 10))
-# plt.subplot(131)
-# plt.imshow(DAPI_1_processed, cmap='gray')
-# plt.title('DAPI_1')
-# plt.axis('off')
-# plt.subplot(132)
-# plt.imshow(DAPI_2_processed, cmap='gray')
-# plt.title('DAPI_2')
-# plt.axis('off')
-# plt.subplot(133)
-# plt.imshow(DAPI_2_processed, cmap='gray')
-# plt.imshow(DAPI_1_rotate_shift, cmap='twilight', alpha=0.5)
-# plt.title('Aligned images (DAPI_2 as reference - DAPI_1 in blue)')
-# plt.axis('off')
-#
-# im_name = os.path.join(current_path, 'MIP_corrected_aligned.png')
-# plt.savefig(im_name)
-#
-# # Save the aligned montage :
-# im_name = os.path.join(current_path, 'Aligned_images.png')
-# plt.figure(figsize=(16, 10))
-# plt.imshow(DAPI_2_processed, cmap='gray')
-# plt.imshow(DAPI_1_rotate_shift, cmap='twilight', alpha=0.5)
-# plt.title('Aligned images (DAPI_2 as reference - DAPI_1 in blue)')
-# plt.axis('off')
-# plt.savefig(im_name)
+        # im_ref = (2 ** 8 - 1) * (im_ref - np.min(im_ref)) / (np.max(im_ref) - np.min(im_ref))
+        im_2_align = (2 ** 8 - 1) * (im_2_align - np.min(im_2_align)) / (np.max(im_2_align) - np.min(im_2_align))
+        im_aligned = (2 ** 8 - 1) * (im_aligned - np.min(im_aligned)) / (np.max(im_aligned) - np.min(im_aligned))
+
+        # Save the images as a subplot
+        plt.subplot(131)
+        plt.imshow(im_ref, cmap='gray')
+        plt.title('Reference')
+        plt.axis('off')
+        plt.subplot(132)
+        plt.imshow(im_2_align, cmap='gray')
+        plt.title('Original image to align')
+        plt.axis('off')
+        plt.subplot(133)
+        plt.imshow(im_ref, cmap='gray')
+        plt.imshow(im_aligned, cmap='twilight', alpha=0.5)
+        plt.title(f'Aligned images - angle {self.optimum_angle}° - shift {self.dx, self.dy}px' )
+        plt.axis('off')
+
+        im_title = im_name + '_aligned.png'
+        im_path = os.path.join(self.saving_path, im_title)
+        plt.savefig(im_path)
+
+        # Save the aligned montage :
+        im_title = im_name + '_aligned_montage.png'
+        im_path = os.path.join(self.saving_path, im_title)
+        plt.figure(figsize=(16, 10))
+        plt.imshow(im_ref, cmap='gray')
+        plt.imshow(im_aligned, cmap='twilight', alpha=0.5)
+        plt.title(f'Aligned images - angle {self.optimum_angle}° - shift {self.dx, self.dy}px' )
+        plt.axis('off')
+        plt.savefig(im_path)
+
 
 if __name__ == "__main__":
-
     # Indicate the path to the two images. The first image would be the reference. The second image is going to be
     # realigned with respect to the first.
-    path_image_1 = "/home/jb/Desktop/HiM_alignment/Test_2/HiM_DAPI/ROI_006/DAPI/scan_001_DAPI_006_ROI.tif"
-    path_image_2 = "/home/jb/Desktop/HiM_alignment/Test_2/RNA_DAPI/DAPI_raw/ROI_006/DAPI/scan_001_DAPI_006_ROI.tif"
-    dest_folder = "/home/jb/Desktop/HiM_alignment/Test_2"
+    # path_image_1 = "/home/jb/Desktop/HiM_alignment/Test_2/HiM_DAPI/ROI_006/DAPI/scan_001_DAPI_006_ROI.tif"
+    # path_image_2 = "/home/jb/Desktop/HiM_alignment/Test_2/RNA_DAPI/DAPI_raw/ROI_006/DAPI/scan_001_DAPI_006_ROI.tif"
+    # dest_folder = "/home/jb/Desktop/HiM_alignment/Test_2"
+
+    path_image_1 = "/home/jb/Desktop/HiM_alignment/Test_1/DAPI_OM_MS_1.tif"
+    path_image_2 = "/home/jb/Desktop/HiM_alignment/Test_1/DAPI_OM_MS_2.tif"
+    dest_folder = "/home/jb/Desktop/HiM_alignment/Test_1"
 
     # Instantiate the alignment class
     _align = ImageAlignment(downsizing_power=3, gaussian_filter=10, angles_range=(-90, 90), crude_search_angle=9,
@@ -339,16 +310,22 @@ if __name__ == "__main__":
     # Load the images and define the main parameters
     im_reference, im_to_align = _align.load_images(path_image_1, path_image_2, dest_folder)
 
-    # Process the two images
-    im_reference_processed = _align.process_image(im_reference, im_name="im_ref")
-    im_to_align_processed = _align.process_image(im_to_align, im_name="im_to_align")
+    _align.rescale_contrast(im_reference)
 
-    # Perform a first crude search for the alignment
-    best_angle_approximation = _align.alignment(im_reference_processed, im_to_align_processed, crude_search=True)
-
-    # Based on the previous calculation, perform a second alignment with constrained angle values
-    best_angle = _align.alignment(im_reference_processed, im_to_align_processed, crude_search=False,
-                                  starting_angle=best_angle_approximation)
-
-
-
+    # # Process the two images
+    # im_reference_processed = _align.process_image(im_reference, im_name="im_ref")
+    # im_to_align_processed = _align.process_image(im_to_align, im_name="im_to_align")
+    #
+    # # Perform a first crude search for the alignment
+    # _align.alignment(im_reference_processed, im_to_align_processed, crude_search=True)
+    #
+    # # Based on the previous calculation, perform a second alignment with constrained angle values
+    # _align.alignment(im_reference_processed, im_to_align_processed, crude_search=False)
+    #
+    # # Calculate the final image using the MIP
+    # aligned_image = _align.recalculate_image(im_to_align, processed=False)
+    # _align.save_aligned_montage(im_reference, im_to_align, aligned_image, im_name="MIP")
+    #
+    # # Calculate the final image using the processed images
+    # aligned_image = _align.recalculate_image(im_to_align_processed, processed=True)
+    # _align.save_aligned_montage(im_reference_processed, im_to_align_processed, aligned_image, im_name="PROCESSED")
