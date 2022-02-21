@@ -11,13 +11,13 @@ after disassembly / reassembly of the fluidics chamber. The mathematical process
 from tifffile import imread, TiffWriter
 from scipy.signal import correlate
 from scipy.ndimage import rotate, gaussian_filter, shift
-from time import time
+# from time import time
 import numpy as np
 import os
 import matplotlib
 import matplotlib.pyplot as plt
-from skimage.filters import threshold_yen, threshold_multiotsu
-from skimage.exposure import rescale_intensity
+# from skimage.filters import threshold_yen, threshold_multiotsu
+# from skimage.exposure import rescale_intensity
 
 matplotlib.use('TkAgg')
 
@@ -34,6 +34,9 @@ class ImageAlignment:
         self.saving = saving
         self.resize_shape = None
         self.saving_path = ""
+        self.optimum_angle = None
+        self.dx = None
+        self.dy = None
 
     def load_images(self, path_1, path_2, saving_path):
         """ Load the two images that are going to be realigned and calculate the parameters.
@@ -56,9 +59,9 @@ class ImageAlignment:
         return mip_1, mip_2
 
     def process_image(self, im, im_name=None):
-        """ Calculate the standardized image applying binning. The binning is applied after calculating the MIP in order
-         to optimize the calculation time. The image renormalization using the gaussian filter is actually quite long
-         when working on full size images
+        """ Calculate the standardized image applying binning. The binning (down-sizing) is used to keep the essential
+        structural information while saving time later during the alignment process. The correlation is indeed much
+        faster when working on small images.
 
         :param im_name: name of the file in case the saving option is selected
         :param im: input image stack
@@ -76,8 +79,10 @@ class ImageAlignment:
 
         # Correct for illumination inhomogeneity using a gaussian filter
         if self.downsizing_power > 0:
-            self.gaussian_filter = 10 / (2 * self.downsizing_power)
-        im_processed = np.divide(mip_bin, gaussian_filter(mip_bin, self.gaussian_filter))
+            filter_size = self.gaussian_filter / (2 * self.downsizing_power)
+            im_processed = np.divide(mip_bin, gaussian_filter(mip_bin, filter_size))
+        else:
+            im_processed = np.divide(mip_bin, gaussian_filter(mip_bin, self.gaussian_filter))
 
         # Standardized the image
         im_standardized = (im_processed - np.mean(im_processed)) / np.std(im_processed)
@@ -101,7 +106,6 @@ class ImageAlignment:
         :param im_ref: reference 2D input image
         :param im: image to be aligned
         :param crude_search: if True, a crude search is run
-        :param starting_angle: if indicated, the fine search will be performed around this values
         :return: the optimum angle value (returning the highest correlation value) as well as the optimum shift values
         """
         # Select the central roi of the image that needs to be realigned
@@ -170,7 +174,7 @@ class ImageAlignment:
         :return: im_rotated, the cropped central part of the rotated image
         """
 
-        # apply rotation by Theta while keeping the same shape of the image
+        # apply rotation by angle_value while keeping the same shape of the image
         im_rotated = rotate(im, angle_value, axes=(1, 0), reshape=False, order=3, mode='constant', prefilter=True)
 
         # select the central part of the rotated image (the one that will never be modified by padding whatever the
@@ -189,6 +193,8 @@ class ImageAlignment:
         :param im: 2D image (np array)
         :return: im_rotated_shifted, the modified image.
         """
+
+        im = self.rescale_contrast(im)
         im_rotated = rotate(im, self.optimum_angle, axes=(1, 0), reshape=False, order=3, mode='constant', cval=0.0)
         if processed:
             im_rotated_shifted = shift(im_rotated,
@@ -196,6 +202,7 @@ class ImageAlignment:
                                        order=0, mode='constant')
         else:
             im_rotated_shifted = shift(im_rotated, [-self.dx, -self.dy], order=0, mode='constant')
+
         return im_rotated_shifted
 
     def im_save(self, im, name):
@@ -233,31 +240,31 @@ class ImageAlignment:
         plt.show()
 
     def rescale_contrast(self, im):
+        """ This function is used to improve the contrast of an input image, in order to make the visualization easier.
 
-        im = np.divide(im, gaussian_filter(im, 10))
-        im = (2 ** 16 - 1) * (im - np.min(im)) / (np.max(im) - np.min(im))
+        :param im: input 2D image (np array)
+        :return: 2D image with rescaled intensity
+        """
+        im = np.divide(im, gaussian_filter(im, self.gaussian_filter))
+        intensity = np.copy(im)
+        intensity = np.reshape(intensity, (intensity.shape[0] * intensity.shape[1], 1))
+        intensity = np.sort(intensity, axis=0)
+        int_min = np.percentile(intensity, 0.5)
+        int_max = np.percentile(intensity, 99.5)
+        im = (2 ** 16 - 1) * (im - int_min) / (int_max - int_min)
+        im[im < 0] = 0
+        im[im > 2**16-1] = 2**16
         return im
 
     def save_aligned_montage(self, im_ref, im_2_align, im_aligned, im_name="MIP"):
-        """ Save the results.
+        """ Save the results.y
 
         :param im_ref: reference 2D image
-        :param im_2_align: image to aligne
+        :param im_2_align: image to align
         :param im_aligned: aligned image
         :param im_name: name of the image to save
         """
         plt.figure(figsize=(16, 10))
-
-        # Scale the image contrast
-        # yen_threshold = threshold_yen(im_ref)
-        # im_ref = rescale_intensity(im_ref, (0, yen_threshold), (0, 2**16))
-
-        # im_ref = (2 ** 8 - 1) * (im_ref - np.min(im_ref)) / (np.max(im_ref) - np.min(im_ref))
-        im_ref = self.rescale_contrast(im_ref)
-        im_2_align = self.rescale_contrast(im_2_align)
-        im_aligned = self.rescale_contrast(im_aligned)
-        # im_2_align = (2 ** 8 - 1) * (im_2_align - np.min(im_2_align)) / (np.max(im_2_align) - np.min(im_2_align))
-        # im_aligned = (2 ** 8 - 1) * (im_aligned - np.min(im_aligned)) / (np.max(im_aligned) - np.min(im_aligned))
 
         # Save the images as a subplot
         plt.subplot(131)
@@ -269,8 +276,8 @@ class ImageAlignment:
         plt.title('Original image to align')
         plt.axis('off')
         plt.subplot(133)
-        plt.imshow(im_ref, cmap='gray')
-        plt.imshow(im_aligned, cmap='twilight', alpha=0.5)
+        plt.imshow(im_ref, cmap='Blues')
+        plt.imshow(im_aligned, cmap='Reds', alpha=0.5)
         plt.title(f'Aligned images - angle {self.optimum_angle}° - shift {self.dx, self.dy}px' )
         plt.axis('off')
 
@@ -282,8 +289,8 @@ class ImageAlignment:
         im_title = im_name + '_aligned_montage.png'
         im_path = os.path.join(self.saving_path, im_title)
         plt.figure(figsize=(16, 10))
-        plt.imshow(im_ref, cmap='gray')
-        plt.imshow(im_aligned, cmap='twilight', alpha=0.5)
+        plt.imshow(im_ref, cmap='Blues')
+        plt.imshow(im_aligned, cmap='Reds', alpha=0.5)
         plt.title(f'Aligned images - angle {self.optimum_angle}° - shift {self.dx, self.dy}px' )
         plt.axis('off')
         plt.savefig(im_path)
@@ -292,24 +299,28 @@ class ImageAlignment:
 if __name__ == "__main__":
     # Indicate the path to the two images. The first image would be the reference. The second image is going to be
     # realigned with respect to the first.
-    # path_image_1 = "/home/jb/Desktop/HiM_alignment/Test_2/HiM_DAPI/ROI_006/DAPI/scan_001_DAPI_006_ROI.tif"
-    # path_image_2 = "/home/jb/Desktop/HiM_alignment/Test_2/RNA_DAPI/DAPI_raw/ROI_006/DAPI/scan_001_DAPI_006_ROI.tif"
-    # dest_folder = "/home/jb/Desktop/HiM_alignment/Test_2"
+    # path_image_ref = "/home/jb/Desktop/HiM_alignment/Test_2/HiM_DAPI/ROI_006/DAPI/scan_001_DAPI_006_ROI.tif"
+    # path_image_to_align = "/home/jb/Desktop/HiM_alignment/Test_2/RNA_DAPI/DAPI_raw/ROI_006/DAPI/scan_001_DAPI_006_ROI.tif"
+    # dest_folder = "/home/jb/Desktop/HiM_alignment/Test_2/ROI_6_results"
 
-    path_image_1 = "/home/jb/Desktop/HiM_alignment/Test_1/DAPI_OM_MS_1.tif"
-    path_image_2 = "/home/jb/Desktop/HiM_alignment/Test_1/DAPI_OM_MS_2.tif"
+    # path_image_ref = "/home/jb/Desktop/HiM_alignment/Test_2/HiM_DAPI/ROI_015/DAPI/scan_001_DAPI_015_ROI.tif"
+    # path_image_to_align = "/home/jb/Desktop/HiM_alignment/Test_2/RNA_DAPI/DAPI_raw/ROI_015/DAPI/scan_001_DAPI_015_ROI.tif"
+    # dest_folder = "/home/jb/Desktop/HiM_alignment/Test_2/ROI_15_results"
+
+    path_image_ref = "/home/jb/Desktop/HiM_alignment/Test_1/DAPI_OM_MS_1.tif"
+    path_image_to_align = "/home/jb/Desktop/HiM_alignment/Test_1/DAPI_OM_MS_2.tif"
     dest_folder = "/home/jb/Desktop/HiM_alignment/Test_1"
 
     # Instantiate the alignment class
-    _align = ImageAlignment(downsizing_power=3, gaussian_filter=10, angles_range=(-90, 90), crude_search_angle=9,
-                            verbose=True, saving=True)
+    _align = ImageAlignment(downsizing_power=1, gaussian_filter=10, angles_range=(-90, 90), crude_search_angle=9,
+                            verbose=False, saving=False)
 
     # Load the images and define the main parameters
-    im_reference, im_to_align = _align.load_images(path_image_1, path_image_2, dest_folder)
+    mip_reference, mip_to_align = _align.load_images(path_image_ref, path_image_to_align, dest_folder)
 
     # Process the two images
-    im_reference_processed = _align.process_image(im_reference, im_name="im_ref")
-    im_to_align_processed = _align.process_image(im_to_align, im_name="im_to_align")
+    im_reference_processed = _align.process_image(mip_reference, im_name="im_ref")
+    im_to_align_processed = _align.process_image(mip_to_align, im_name="im_to_align")
 
     # Perform a first crude search for the alignment
     _align.alignment(im_reference_processed, im_to_align_processed, crude_search=True)
@@ -318,9 +329,7 @@ if __name__ == "__main__":
     _align.alignment(im_reference_processed, im_to_align_processed, crude_search=False)
 
     # Calculate the final image using the MIP
-    aligned_image = _align.recalculate_image(im_to_align, processed=False)
-    _align.save_aligned_montage(im_reference, im_to_align, aligned_image, im_name="MIP")
-
-    # Calculate the final image using the processed images
-    aligned_image = _align.recalculate_image(im_to_align_processed, processed=True)
-    _align.save_aligned_montage(im_reference_processed, im_to_align_processed, aligned_image, im_name="PROCESSED")
+    aligned_image = _align.recalculate_image(mip_to_align, processed=False)
+    mip_ref_contrast = _align.rescale_contrast(mip_reference)
+    mip_to_align_contrast = _align.rescale_contrast(mip_to_align)
+    _align.save_aligned_montage(mip_ref_contrast, mip_to_align_contrast, aligned_image, im_name="MIP")
