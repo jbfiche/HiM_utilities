@@ -30,7 +30,7 @@ psf = psf.genpsfExpl(na=NA, ri=ri_sample, ril=ri_medium, ex=wavelength_excitatio
                      objQuality=objQuality, excBeamFill=2.0, v=verbose)
 
 # save the psf image
-file_name = psf.tif
+file_name = "psf.tif"
 saving_path = os.path.join(dest_folder, file_name)
 psf.save(saving_path, type="tiff16", tiffMultiDir=True, cmode="scale")
 
