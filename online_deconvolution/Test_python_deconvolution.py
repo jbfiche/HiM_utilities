@@ -66,12 +66,13 @@ for n, path in enumerate(path_files):
         deconvolved = raw_channel.cmle(psf, sn=[20, 20, 20, 20, 20], snr=[12, 12, 12, 12, 12], it=40, bgMode="wf",
                                        bg=[0.0, 0.0, 0.0, 0.0], blMode="off", brMode="auto", varPsf="off", q=0.1,
                                        mode="fast", pad="auto", reduceMode="auto", bgRadius=0.7)
+        deconvolved_MIP = deconvolved.miniMIP()
 
         # save the deconvolved image
         file_name = os.path.basename(path)
         new_file_name = os.path.splitext(file_name)[0] + "_decon_ch" + str(ch) + ".tif"
         saving_path = os.path.join(dest_folder, new_file_name)
-        deconvolved.save(saving_path, type="tiff16", tiffMultiDir=True, cmode="scale")
+        deconvolved_MIP.save(saving_path, type="tiff16", tiffMultiDir=True, cmode="scale")
 
 huOpt.report("Done!")
 exit()
