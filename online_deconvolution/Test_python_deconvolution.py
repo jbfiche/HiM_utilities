@@ -25,8 +25,8 @@ huOpt.verb(mode="silent")
 # define the psf according to the properties define in parameters
 psf = image("psf", type="float")
 psf = psf.genpsfExpl(na=NA, ri=ri_sample, ril=ri_medium, ex=wavelength_excitation[0],
-                     em=wavelength_emission[0], dims="auto", dim=[256, 256, 300, 0, 1, 0], dx=50,
-                     dz=50, micr=microscope, zDist=0.0, imagingDir="upward", reflCorr=False,
+                     em=wavelength_emission[0], dims="auto", dim=[300, 300, 500, 0, 1, 0], dx=50,
+                     dz=100, micr=microscope, zDist=0.0, imagingDir="upward", reflCorr=False,
                      objQuality="perfect", excBeamFill=2.0, v=verbose)
 
 # look for all the tif files
