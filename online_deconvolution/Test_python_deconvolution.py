@@ -63,6 +63,9 @@ for n, path in enumerate(path_files):
                          em=wavelength_emission[0], baseline=100, dx=0.106, dy=0.106, dz=0.25, mag=60.0,
                          imagingDir="upward", micr=microscope, tclReturn=True)
         # text_report = f'image paramters : {im_param}'
+        im_size = raw_channel.getdims(mode="all")
+        text_report = f'Image dimensions : {im_size} and number of frames : {n_frames}'
+        huOpt.report(text_report)
 
         raw_channel.cmle(psf, deconvolved, sn=[20, 20, 20, 20, 20], snr=[12, 12, 12, 12, 12], it=40, bgMode="wf",
                                        bg=[0.0, 0.0, 0.0, 0.0], blMode="off", brMode="auto", varPsf="off", q=0.1,
