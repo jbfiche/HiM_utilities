@@ -312,8 +312,8 @@ if __name__ == "__main__":
     dest_folder = "/home/jb/Desktop/HiM_alignment/Test_1"
 
     # Instantiate the alignment class
-    _align = ImageAlignment(downsizing_power=1, gaussian_filter=10, angles_range=(-90, 90), crude_search_angle=9,
-                            verbose=False, saving=False)
+    _align = ImageAlignment(downsizing_power=3, gaussian_filter=15, angles_range=(-90, 90), crude_search_angle=9,
+                            verbose=False, saving=True)
 
     # Load the images and define the main parameters
     mip_reference, mip_to_align = _align.load_images(path_image_ref, path_image_to_align, dest_folder)
@@ -322,14 +322,14 @@ if __name__ == "__main__":
     im_reference_processed = _align.process_image(mip_reference, im_name="im_ref")
     im_to_align_processed = _align.process_image(mip_to_align, im_name="im_to_align")
 
-    # Perform a first crude search for the alignment
-    _align.alignment(im_reference_processed, im_to_align_processed, crude_search=True)
-
-    # Based on the previous calculation, perform a second alignment with constrained angle values
-    _align.alignment(im_reference_processed, im_to_align_processed, crude_search=False)
-
-    # Calculate the final image using the MIP
-    aligned_image = _align.recalculate_image(mip_to_align, processed=False)
-    mip_ref_contrast = _align.rescale_contrast(mip_reference)
-    mip_to_align_contrast = _align.rescale_contrast(mip_to_align)
-    _align.save_aligned_montage(mip_ref_contrast, mip_to_align_contrast, aligned_image, im_name="MIP")
+    # # Perform a first crude search for the alignment
+    # _align.alignment(im_reference_processed, im_to_align_processed, crude_search=True)
+    #
+    # # Based on the previous calculation, perform a second alignment with constrained angle values
+    # _align.alignment(im_reference_processed, im_to_align_processed, crude_search=False)
+    #
+    # # Calculate the final image using the MIP
+    # aligned_image = _align.recalculate_image(mip_to_align, processed=False)
+    # mip_ref_contrast = _align.rescale_contrast(mip_reference)
+    # mip_to_align_contrast = _align.rescale_contrast(mip_to_align)
+    # _align.save_aligned_montage(mip_ref_contrast, mip_to_align_contrast, aligned_image, im_name="MIP")
