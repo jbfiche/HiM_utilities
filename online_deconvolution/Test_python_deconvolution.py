@@ -27,6 +27,7 @@ psf = image("psf", type="float")
 psf.genpsfExpl(psf, na=NA, ri=ri_sample, ril=ri_medium, ex=wavelength_excitation[0],
                em=wavelength_emission[0], dims="manual", dim =[100, 100, 50, 0, 1, 0], dx=50, dz=150,
                micr=microscope, zDist=0.0, imagingDir="upward", reflCorr=False, objQuality=objQuality, v=verbose)
+psf.genpsf(psf)
 
 # look for all the tif files
 path_files = glob(data_folder + '/**/*.tif', recursive=True)
