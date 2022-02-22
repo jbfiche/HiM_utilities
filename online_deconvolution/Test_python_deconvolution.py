@@ -52,9 +52,6 @@ for n, path in enumerate(path_files):
     # depending on the number of channels, split the data accordingly
     for ch in range(n_channel):
         raw_channel = image("img_channel", type = "float", dim = [dX, dY, n_ch_frames, 0, 1, 1])
-        raw_channel.setp(na=NA, objQuality=objQuality, ril=ri_medium, ri=ri_sample, ex=wavelength_excitation[0],
-                         em=wavelength_emission[0], baseline=100, dx=0.106, dy=0.106, dz=0.25, mag=60.0,
-                         imagingDir="upward", micr=microscope)
         
         # copy from raw the frames associated to the selected channel
         for frame in range(n_ch_frames):
@@ -62,7 +59,12 @@ for n, path in enumerate(path_files):
             raw.cp(raw_channel, span=[dX, dY, 1, 0, 1, 1], srco=[0, 0, src_frame, 0, 0, 0], desto=[0, 0, frame, 0, 0, 0])
 
         # perform deconvolution
-        deconvolved = raw_channel.cmle(psf, sn=[20, 20, 20, 20, 20], snr=[12, 12, 12, 12, 12], it=40, bgMode="wf",
+        im_param = raw_channel.setp(na=NA, objQuality=objQuality, ril=ri_medium, ri=ri_sample, ex=wavelength_excitation[0],
+                         em=wavelength_emission[0], baseline=100, dx=0.106, dy=0.106, dz=0.25, mag=60.0,
+                         imagingDir="upward", micr=microscope, tclReturn=True)
+        text_report = f'image paramters : {im_param}'
+        huOpt.report(text_report)
+        #deconvolved = raw_channel.cmle(psf, sn=[20, 20, 20, 20, 20], snr=[12, 12, 12, 12, 12], it=40, bgMode="wf",
                                        bg=[0.0, 0.0, 0.0, 0.0], blMode="off", brMode="auto", varPsf="off", q=0.1,
                                        mode="fast", pad="auto", reduceMode="auto", bgRadius=0.7)
 
