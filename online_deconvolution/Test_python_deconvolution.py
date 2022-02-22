@@ -27,7 +27,7 @@ psf = image("psf", type="float")
 psf = psf.genpsfExpl(na=NA, ri=ri_sample, ril=ri_medium, ex=wavelength_excitation[0],
                      em=wavelength_emission[0], dims="auto", dim=[300, 300, 500, 0, 1, 0], dx=50,
                      dz=100, micr=microscope, zDist=0.0, imagingDir="upward", reflCorr=False,
-                     objQuality="perfect", excBeamFill=2.0, v=verbose)
+                     objQuality=objQuality, excBeamFill=2.0, v=verbose)
 
 # look for all the tif files
 path_files = glob(data_folder + '/**/*.tif', recursive=True)
@@ -52,6 +52,9 @@ for n, path in enumerate(path_files):
     # depending on the number of channels, split the data accordingly
     for ch in range(n_channel):
         raw_channel = image("img_channel", type = "float", dim = [dX, dY, n_ch_frames, 0, 1, 1])
+        raw_channel.setp(na=NA, objQuality=objQuality, ril=ri_medium, ri=ri_sample, ex=wavelength_excitation[0],
+                         em=wavelength_emission[0], baseline=100, dx=0.106, dy=0.106, dz=0.25, mag=60.0,
+                         imagingDir="upward", micr=microscope)
         
         # copy from raw the frames associated to the selected channel
         for frame in range(n_ch_frames):
