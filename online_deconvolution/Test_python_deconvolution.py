@@ -24,7 +24,7 @@ huOpt.verb(mode="silent")
 
 # define the psf according to the properties define in parameters
 psf = image("psf", type="float")
-psf = psf.genpsfExpl(na=NA, ri=ri_sample, ril=ri_medium, ex=wavelength_excitation[0],
+psf.genpsfExpl(psf, na=NA, ri=ri_sample, ril=ri_medium, ex=wavelength_excitation[0],
                      em=wavelength_emission[0], dims="auto", dx=50, dz=100, micr=microscope, zDist=0.0,
                      imagingDir="upward", reflCorr=False, objQuality=objQuality, v=verbose)
 
