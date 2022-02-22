@@ -25,9 +25,9 @@ huOpt.verb(mode="silent")
 # define the psf according to the properties define in parameters
 psf = image("psf", type="float")
 psf = psf.genpsfExpl(na=NA, ri=ri_sample, ril=ri_medium, ex=wavelength_excitation[0],
-                     em=wavelength_emission[0], dims="auto", dim=[300, 300, 100, 0, 1, 0], dx=50,
+                     em=wavelength_emission[0], dims="manual", dim=[300, 300, 100, 0, 1, 0], dx=50,
                      dz=100, micr=microscope, zDist=0.0, imagingDir="upward", reflCorr=False,
-                     objQuality=objQuality, excBeamFill=2.0, v=verbose)
+                     objQuality=objQuality, v=verbose)
 
 # save the psf image
 file_name = "psf.tif"
