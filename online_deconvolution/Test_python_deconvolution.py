@@ -58,7 +58,7 @@ for n, path in enumerate(path_files):
             raw.cp(raw_channel, span=[dX, dY, 1, 0, 1, 1], srco=[0, 0, src_frame, 0, 0, 0], desto=[0, 0, frame, 0, 0, 0])
 
         # perform deconvolution
-        im_param = raw_channel.setp(def=False, na=NA, objQuality=objQuality, ril=ri_medium, ri=ri_sample, ex=wavelength_excitation[0],
+        im_param = raw_channel.setp(na=NA, objQuality=objQuality, ril=ri_medium, ri=ri_sample, ex=wavelength_excitation[0],
                          em=wavelength_emission[0], baseline=100, dx=0.106, dy=0.106, dz=0.25, mag=60.0,
                          imagingDir="upward", micr=microscope, tclReturn=True)
         # text_report = f'image paramters : {im_param}'
