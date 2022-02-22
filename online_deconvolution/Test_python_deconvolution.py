@@ -9,14 +9,25 @@ data_folder = "/mnt/grey/DATA/users/JB/test_HiM/test_data_Marion/Raw_data"
 dest_folder = "/mnt/grey/DATA/users/JB/test_HiM/test_data_Marion/Deconvolved"
 
 n_channel: int = 2
-wavelength: list = [561, 647]
+wavelength_excitation: list = [405, 561, 670]
+wavelength_emission: list = [460, 575, 700]  # Emission maxima for DAPI, Atto550, AF647
 NA: float = 1.2
-voxel_size: list = [106, 106, 250] #nm
+voxel_size: list = [106, 106, 250]  # nm
+ri_sample: float = 1.33  # Specimen refractive index
+ri_medium: float = 1.515  # Lens medium refractive index
+objQuality: str = "good"  # Quality of the objective lens
+microscope: str = "widefield"  # Imaging modality
+verbose: bool = True
 
 # to avoid pop up warning
 huOpt.verb(mode="silent")
 
 # define the psf according to the properties define in parameters
+psf = image("psf", type = "float")
+psf = psf.genpsfExpl(na=NA, ri=ri_sample, ril=ri_medium, ex=wavelength_excitation[0],
+                     em=wavelength_emission[0], dims="auto", dim=[256, 256, 100, 0, 1, 0], dx=voxel_size[0],
+                     dz=voxel_size[2], micr=microscope, zDist=0.0, imagingDir="upward", reflCorr=False,
+                     objQuality = "perfect", excBeamFill=2.0, v=verbose)
 
 
 # look for all the tif files
