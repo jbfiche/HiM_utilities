@@ -23,12 +23,11 @@ verbose: bool = True
 huOpt.verb(mode="silent")
 
 # define the psf according to the properties define in parameters
-psf = image("psf", type = "float")
+psf = image("psf", type="float")
 psf = psf.genpsfExpl(na=NA, ri=ri_sample, ril=ri_medium, ex=wavelength_excitation[0],
                      em=wavelength_emission[0], dims="auto", dim=[256, 256, 100, 0, 1, 0], dx=voxel_size[0],
                      dz=voxel_size[2], micr=microscope, zDist=0.0, imagingDir="upward", reflCorr=False,
-                     objQuality = "perfect", excBeamFill=2.0, v=verbose)
-
+                     objQuality="perfect", excBeamFill=2.0, v=verbose)
 
 # look for all the tif files
 path_files = glob(data_folder + '/**/*.tif', recursive=True)
@@ -57,10 +56,13 @@ for n, path in enumerate(path_files):
         # copy from raw the frames associated to the selected channel
         for frame in range(n_ch_frames):
             src_frame = int(n_channel*frame + ch)
-            raw.cp(raw_channel, span = [dX, dY, 1, 0, 1, 1], srco = [0, 0, src_frame, 0, 0, 0], desto = [0, 0, frame, 0, 0, 0])
+            raw.cp(raw_channel, span=[dX, dY, 1, 0, 1, 1], srco=[0, 0, src_frame, 0, 0, 0], desto=[0, 0, frame, 0, 0, 0])
 
         # perform deconvolution
-        
+        deconvolved = raw_channel.cmle(psf, sn=[20, 20, 20, 20, 20], snr=[12, 12, 12, 12, 12], it=40, bgMode="wf",
+                                       bg=[0.0, 0.0, 0.0, 0.0], blMode="off", brMode="auto", varPsf="off", q=0.1,
+                                       mode="fast", pad="auto", reduceMode="auto", bgRadius=0.7)
+
         # save the deconvolved image
         file_name = os.path.basename(path)
         new_file_name = os.path.splitext(file_name)[0] + "_decon_ch" + str(ch) + ".tif"
