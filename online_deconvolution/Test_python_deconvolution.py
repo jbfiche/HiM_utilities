@@ -64,9 +64,9 @@ for n, path in enumerate(path_files):
                          imagingDir="upward", micr=microscope, tclReturn=True)
         text_report = f'image paramters : {im_param}'
         huOpt.report(text_report)
-        #deconvolved = raw_channel.cmle(psf, sn=[20, 20, 20, 20, 20], snr=[12, 12, 12, 12, 12], it=40, bgMode="wf",
-                                       bg=[0.0, 0.0, 0.0, 0.0], blMode="off", brMode="auto", varPsf="off", q=0.1,
-                                       mode="fast", pad="auto", reduceMode="auto", bgRadius=0.7)
+        # deconvolved = raw_channel.cmle(psf, sn=[20, 20, 20, 20, 20], snr=[12, 12, 12, 12, 12], it=40, bgMode="wf",
+        #                                bg=[0.0, 0.0, 0.0, 0.0], blMode="off", brMode="auto", varPsf="off", q=0.1,
+        #                                mode="fast", pad="auto", reduceMode="auto", bgRadius=0.7)
 
         # save the deconvolved image
         file_name = os.path.basename(path)
