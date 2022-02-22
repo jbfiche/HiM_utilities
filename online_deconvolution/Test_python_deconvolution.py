@@ -51,6 +51,7 @@ for n, path in enumerate(path_files):
     # depending on the number of channels, split the data accordingly
     for ch in range(n_channel):
         raw_channel = image("img_channel", type="float", dim=[dX, dY, n_ch_frames, 0, 1, 1])
+        deconvolved = image("img_deconvolved", type="float", dim=[dX, dY, n_ch_frames, 0, 1, 1])
 
         # copy from raw the frames associated to the selected channel
         for frame in range(n_ch_frames):
