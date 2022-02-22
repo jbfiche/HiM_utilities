@@ -25,8 +25,8 @@ huOpt.verb(mode="silent")
 # define the psf according to the properties define in parameters
 psf = image("psf", type="float")
 psf.genpsfExpl(psf, na=NA, ri=ri_sample, ril=ri_medium, ex=wavelength_excitation[0],
-                     em=wavelength_emission[0], dims="auto", dx=106, dz=250, micr=microscope, zDist=0.0,
-                     imagingDir="upward", reflCorr=False, objQuality=objQuality, v=verbose)
+               em=wavelength_emission[0], dims="manual", dim =[100, 100, 50, 0, 1, 0], dx=106, dz=250,
+               micr=microscope, zDist=0.0, imagingDir="upward", reflCorr=False, objQuality=objQuality, v=verbose)
 
 # look for all the tif files
 path_files = glob(data_folder + '/**/*.tif', recursive=True)
@@ -60,7 +60,7 @@ for n, path in enumerate(path_files):
 
         # perform deconvolution
         im_param = raw_channel.setp(na=NA, objQuality=objQuality, ril=ri_medium, ri=ri_sample, ex=wavelength_excitation[0],
-                         em=wavelength_emission[0], baseline=100, dx=0.106, dy=0.106, dz=0.25, mag=60.0, offZ=0, 
+                         em=wavelength_emission[0], baseline=100, dx=0.106, dy=0.106, dz=0.25, mag=60.0, offZ=0,
                          imagingDir="upward", micr=microscope, tclReturn=True)
         text_report = f'image parameters : {im_param}'
         huOpt.report(text_report)
