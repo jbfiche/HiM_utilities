@@ -5,8 +5,8 @@ version = f'Python version : {sys.version}'
 huOpt.report(version)
 
 # parameters
-data_folder = "/mnt/grey/DATA/users/JB/test_HiM/test_data_Marion/Raw_data"
-dest_folder = "/mnt/grey/DATA/users/JB/test_HiM/test_data_Marion/Deconvolved"
+data_folder = "/mnt/grey/DATA/users/JB/test_HiM/Test_data_Olivier_embryo/raw_DAPI"
+dest_folder = "/mnt/grey/DATA/users/JB/test_HiM/Test_data_Olivier_embryo/Results_python"
 
 n_channel: int = 2
 wavelength_excitation: list = [405, 561, 670]
