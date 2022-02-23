@@ -63,7 +63,8 @@ for n, path in enumerate(path_files):
         im_param = raw_channel.setp(state="verified", micr=microscope, na=NA, objQuality=objQuality, ril=ri_medium,
                                     ri=ri_sample, ex=wavelength_excitation[0], em=wavelength_emission[0],
                                     baseline=100, dx=dX*voxel_size[0]/1000, dy=dY*voxel_size[1]/1000,
-                                    dz=n_frames*voxel_size[2]/1000, mag=60.0, offZ=5, imagingDir="upward", tclReturn=True)
+                                    dz=n_ch_frames*voxel_size[2]/1000, mag=60.0, offZ=5, imagingDir="upward",
+                                    tclReturn=True)
         text_report = f'image parameters : {im_param}'
         huOpt.report(text_report)
 
