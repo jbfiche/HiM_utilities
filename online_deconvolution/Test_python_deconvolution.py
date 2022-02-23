@@ -28,7 +28,7 @@ psf.genpsfExpl(psf, na=NA, ri=ri_sample, ril=ri_medium, ex=wavelength_excitation
                em=wavelength_emission[0], dims="manual", dim=[100, 100, 50, 0, 1, 0], dx=voxel_size[0], dz=voxel_size[2],
                micr=microscope, zDist=0.0, imagingDir="upward", reflCorr=False, objQuality=objQuality, v=verbose)
 
-# look for all the tif files
+# look for all the tif files in the folder
 path_files = glob(data_folder + '/**/*.tif', recursive=True)
 text_report = f'Number of tif files found : {len(path_files)}'
 huOpt.report(text_report)
