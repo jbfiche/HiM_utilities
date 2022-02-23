@@ -62,8 +62,8 @@ for n, path in enumerate(path_files):
         # perform deconvolution
         raw_channel.setp(state="verified", micr=microscope, na=NA, objQuality=objQuality, ril=ri_medium,
                                     ri=ri_sample, ex=wavelength_excitation[0], em=wavelength_emission[0],
-                                    baseline=100, dx=voxel_size[0], dy=voxel_size[1],
-                                    dz=voxel_size[2], mag=60.0, offZ=5, imagingDir="upward",
+                                    baseline=100, dx=voxel_size[0]/1000, dy=voxel_size[1]/1000,
+                                    dz=voxel_size[2]/1000, mag=60.0, offZ=5, imagingDir="upward",
                                     tclReturn=False)
         # text_report = f'image parameters : {im_param}'
         # huOpt.report(text_report)
